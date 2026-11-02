@@ -110,7 +110,7 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
-  font-size: 10px;
+  font-size: 12px;
   color: #687487;
   font-weight: 700;
   text-transform: uppercase;
@@ -199,7 +199,7 @@
   font-size: 11px;
 }
 .review-card {
-  padding: 26px 30px;
+  padding: 24px;
 }
 .card-header {
   display: flex;
@@ -246,12 +246,12 @@
 }
 .comparison {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1.08fr 1.18fr 1.08fr;
   gap: 11px;
 }
 .panel {
   background: #f5f7f9;
-  min-height: 138px;
+  min-height: 154px;
   padding: 16px;
 }
 .panel span,
@@ -306,13 +306,14 @@
   margin: 14px 0;
 }
 .judgment {
-  flex: 1;
   border: 1px solid #ccd5df;
   background: #fff;
   border-radius: 7px;
   padding: 11px;
+  width: 15%;
   color: #34445a;
   font-weight: 700;
+  font-size: 12px;
   cursor: pointer;
 }
 .judgment.selected.correct {
@@ -332,7 +333,7 @@
 }
 .fields {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 0.8fr 1.2fr;
   gap: 16px;
 }
 .fields label {
@@ -374,15 +375,23 @@
   font-size: 13px;
   font-weight: 700;
 }
-.meta {
-  margin-top: 14px;
+.diagnostics {
+  padding: 11px 0 1px;
 }
-.meta p {
-  white-space: pre-wrap;
+.diagnostic-line {
+  display: flex;
+  gap: 5px;
+  margin: 8px 0;
   font-size: 13px;
   line-height: 1.55;
   color: #566577;
-  margin: 4px 0;
+}
+.diagnostic-line b {
+  color: #46576b;
+  flex: 0 0 auto;
+}
+.diagnostic-line span {
+  white-space: pre-wrap;
 }
 .empty {
   padding: 60px;

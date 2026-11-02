@@ -17,7 +17,7 @@ export function Header({
   return (
     <header className="topbar">
       <div>
-        <span className="eyebrow">TEXT NORMALIZATION · HUMAN REVIEW</span>
+        <span className="eyebrow">TEXT NORMALIZATION REVIEWER</span>
         <h1>{title || "Normalization review"}</h1>
         <p>
           {notes ||
@@ -41,6 +41,7 @@ export function Header({
     </header>
   );
 }
+
 export function Summary({ cases }: { cases: Case[] }) {
   const reviewed = cases.filter((item) => annotation(item).judgment);
   const count = (judgment: Judgment) =>
@@ -57,6 +58,7 @@ export function Summary({ cases }: { cases: Case[] }) {
     </section>
   );
 }
+
 export function Toolbar({
   query,
   setQuery,
@@ -93,7 +95,7 @@ export function Toolbar({
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search cases — ID, text, reason, note"
+          placeholder="Search cases by ID, text, reason, note"
         />
       </label>
       <Filter
@@ -127,6 +129,7 @@ export function Toolbar({
     </section>
   );
 }
+
 export function CaseList({
   items,
   selectedId,
@@ -164,6 +167,7 @@ export function CaseList({
     </aside>
   );
 }
+
 export function ReviewCard({
   item,
   index,
@@ -212,8 +216,8 @@ export function ReviewCard({
         </div>
       </div>
       <div className="comparison">
-        <Panel title="Original text" value={text(item.source_text)} />
-        <Panel title="Model prediction" value={text(item.prediction)} />
+        <Panel title="Source text" value={text(item.source_text)} />
+        <Panel title="Pipeline answer" value={text(item.prediction)} />
         <Panel title="Reference text" value={reference} muted={!reference} />
       </div>
       <section className="annotation">
@@ -275,30 +279,39 @@ export function ReviewCard({
       </section>
       <details className="details">
         <summary>Source details & diagnostics</summary>
-        <Meta
-          label="Source text with spans"
-          value={text(item.source_text_with_spans)}
-        />
-        <Meta
-          label="Normalized spans"
-          value={
-            Array.isArray(item.normalized_spans)
-              ? item.normalized_spans.join("\n")
-              : ""
-          }
-        />
-        <Meta
-          label="Source error types"
-          value={
-            Array.isArray(item.error_types) ? item.error_types.join(", ") : ""
-          }
-        />
-        <Meta label="Reason" value={text(item.reason)} />
-        <Meta label="Review note" value={text(item.review_note)} />
+        <div className="diagnostics">
+          <DiagnosticLine label="Stage" value={text(item.error_stage)} />
+          <DiagnosticLine
+            label="Source error type"
+            value={
+              Array.isArray(item.error_types) ? item.error_types.join(", ") : ""
+            }
+          />
+          <DiagnosticLine
+            label="Input spans"
+            value={text(item.source_text_with_spans)}
+          />
+          <DiagnosticLine label="Model output" value={text(item.prediction)} />
+          <DiagnosticLine
+            label="Normalized spans"
+            value={
+              Array.isArray(item.normalized_spans)
+                ? item.normalized_spans.join(" · ")
+                : ""
+            }
+          />
+          <DiagnosticLine
+            label="Gold/reference spans"
+            value={text(item.reference_spans) || text(item.gold_spans)}
+          />
+          <DiagnosticLine label="Reason" value={text(item.reason)} />
+          <DiagnosticLine label="Review note" value={text(item.review_note)} />
+        </div>
       </details>
     </article>
   );
 }
+
 function Stat({ value, label }: { value: string | number; label: string }) {
   return (
     <div className="stat">
@@ -307,6 +320,7 @@ function Stat({ value, label }: { value: string | number; label: string }) {
     </div>
   );
 }
+
 function Panel({
   title,
   value,
@@ -323,14 +337,16 @@ function Panel({
     </div>
   );
 }
-function Meta({ label, value }: { label: string; value: string }) {
+
+function DiagnosticLine({ label, value }: { label: string; value: string }) {
   return value ? (
-    <div className="meta">
-      <b>{label}</b>
-      <p>{value}</p>
+    <div className="diagnostic-line">
+      <b>{label}:</b>
+      <span>{value}</span>
     </div>
   ) : null;
 }
+
 function Filter({
   label,
   value,

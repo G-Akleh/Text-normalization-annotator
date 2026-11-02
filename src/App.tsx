@@ -27,7 +27,10 @@ function restoreSession(): SavedSession | null {
     if (!parsed || typeof parsed !== "object") return null;
     const candidate = parsed as Partial<SavedSession>;
     if (!candidate.dataset) return null;
-    return { dataset: validateDataset(candidate.dataset), selectedId: candidate.selectedId ?? "" };
+    return {
+      dataset: validateDataset(candidate.dataset),
+      selectedId: candidate.selectedId ?? "",
+    };
   } catch {
     sessionStorage.removeItem(sessionKey);
     return null;
@@ -36,7 +39,9 @@ function restoreSession(): SavedSession | null {
 
 export default function App() {
   const [savedSession] = useState(restoreSession);
-  const [dataset, setDataset] = useState<Dataset | null>(savedSession?.dataset ?? null);
+  const [dataset, setDataset] = useState<Dataset | null>(
+    savedSession?.dataset ?? null,
+  );
   const [selectedId, setSelectedId] = useState(savedSession?.selectedId ?? "");
   const [query, setQuery] = useState("");
   const [reviewFilter, setReviewFilter] = useState("all");
@@ -45,10 +50,14 @@ export default function App() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [message, setMessage] = useState("");
   const cases = dataset?.cases ?? emptyCases;
+
   useEffect(() => {
     if (!dataset) return;
     try {
-      sessionStorage.setItem(sessionKey, JSON.stringify({ dataset, selectedId }));
+      sessionStorage.setItem(
+        sessionKey,
+        JSON.stringify({ dataset, selectedId }),
+      );
     } catch {
       // Temporary persistence is unavailable (for example, in private browsing).
     }
@@ -96,6 +105,7 @@ export default function App() {
       ...(current ? (annotation(current).error_types ?? []) : []),
     ]),
   ];
+
   function updateAnnotation(update: Partial<Annotation>) {
     if (!current) return;
     setDataset((old) =>
@@ -120,6 +130,7 @@ export default function App() {
         : old,
     );
   }
+
   function importFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -146,6 +157,7 @@ export default function App() {
     reader.readAsText(file);
     event.target.value = "";
   }
+
   function exportData() {
     if (!dataset) return;
     const blob = new Blob([JSON.stringify(dataset, null, 2)], {
@@ -160,8 +172,11 @@ export default function App() {
     sessionStorage.removeItem(sessionKey);
     setDataset(null);
     setSelectedId("");
-    setMessage("Annotations exported. The temporary review session was cleared.");
+    setMessage(
+      "Annotations exported. The temporary review session was cleared.",
+    );
   }
+
   const navigate = (offset: number) => {
     const next = filtered[currentIndex + offset];
     if (next) setSelectedId(next.id);
