@@ -7,6 +7,7 @@ export type Annotation = {
   error_types?: string[];
   comment?: string;
   reviewed_at?: string;
+  skipped_at?: string; // intentional skip, it remains unreviewed in the review totals.
 };
 
 export type Case = RecordValue & {

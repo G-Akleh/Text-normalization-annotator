@@ -292,6 +292,12 @@
   margin: 3px 0 0;
   color: #253449;
 }
+.shortcut-hint {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  color: #778596;
+}
 .reviewed-mark {
   font-size: 12px;
   color: #287144;
@@ -331,10 +337,20 @@
   background: #fff8e4;
   color: #865902;
 }
+.judgment.skip.selected {
+  border-color: #62758a;
+  background: #eef2f6;
+  color: #3f5266;
+}
+.judgment kbd {
+  margin-left: 5px;
+  padding: 1px 4px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-size: 10px;
+}
 .fields {
-  display: grid;
-  grid-template-columns: 0.8fr 1.2fr;
-  gap: 16px;
+  display: block;
 }
 .fields label {
   font-size: 12px;
@@ -358,6 +374,7 @@
 }
 .fields textarea {
   resize: vertical;
+  min-height: 118px;
 }
 .fields small {
   font-size: 11px;
@@ -393,6 +410,17 @@
 .diagnostic-line span {
   white-space: pre-wrap;
 }
+.span-highlight {
+  padding: 1px 2px;
+  border-radius: 3px;
+  color: inherit;
+}
+.span-0 { background: #fff0aa; }
+.span-1 { background: #c9f3e1; }
+.span-2 { background: #d9e8ff; }
+.span-3 { background: #f5d9ff; }
+.span-4 { background: #ffdccc; }
+.span-5 { background: #dff1c8; }
 .empty {
   padding: 60px;
   text-align: center;

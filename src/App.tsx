@@ -1,19 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
 import { CaseList, Header, ReviewCard, Summary, Toolbar } from "./components";
 import { annotation, fieldValues, text, validateDataset } from "./data";
 import type { Annotation, Dataset } from "./types";
 import "./App.css";
 
-const defaultErrorTypes = [
-  "numeric_value",
-  "unit_loss",
-  "product_code_loss",
-  "code_letter_as_unit",
-  "size_code_loss",
-  "date_time",
-  "other",
-];
 const emptyCases: Dataset["cases"] = [];
 const sessionKey = "normalization-annotator-session";
 
@@ -98,15 +89,8 @@ export default function App() {
     filtered.find((item) => item.id === selectedId) ?? filtered[0];
   const currentIndex = filtered.findIndex((item) => item.id === current?.id);
   const sourceTypes = fieldValues(cases, "error_types");
-  const availableTypes = [
-    ...new Set([
-      ...defaultErrorTypes,
-      ...sourceTypes,
-      ...(current ? (annotation(current).error_types ?? []) : []),
-    ]),
-  ];
 
-  function updateAnnotation(update: Partial<Annotation>) {
+  const updateAnnotation = useCallback((update: Partial<Annotation>) => {
     if (!current) return;
     setDataset((old) =>
       old
@@ -121,7 +105,9 @@ export default function App() {
                       ...update,
                       reviewed_at: update.judgment
                         ? new Date().toISOString()
-                        : annotation(item).reviewed_at,
+                        : update.judgment === undefined && "skipped_at" in update
+                          ? undefined
+                          : annotation(item).reviewed_at,
                     },
                   }
                 : item,
@@ -129,7 +115,7 @@ export default function App() {
           }
         : old,
     );
-  }
+  }, [current]);
 
   function importFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -177,10 +163,42 @@ export default function App() {
     );
   }
 
-  const navigate = (offset: number) => {
+  const navigate = useCallback((offset: number) => {
     const next = filtered[currentIndex + offset];
     if (next) setSelectedId(next.id);
-  };
+  }, [currentIndex, filtered]);
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.matches("input, textarea, select, button")) return;
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        navigate(-1);
+        return;
+      }
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        navigate(1);
+        return;
+      }
+      if (!current || event.ctrlKey || event.metaKey || event.altKey) return;
+      const shortcuts: Record<string, Annotation["judgment"]> = {
+        a: "correct",
+        s: "error",
+        d: "acceptable_alternative",
+      };
+      const judgment = shortcuts[event.key.toLowerCase()];
+      if (judgment) {
+        event.preventDefault();
+        updateAnnotation({ judgment, skipped_at: undefined });
+      } else if (event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        updateAnnotation({ judgment: undefined, skipped_at: new Date().toISOString() });
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [current, currentIndex, filtered, navigate, updateAnnotation]);
   return (
     <main className="app-shell">
       <Header
@@ -223,7 +241,6 @@ export default function App() {
                 item={current}
                 index={currentIndex}
                 total={filtered.length}
-                availableTypes={availableTypes}
                 onSelect={navigate}
                 onUpdate={updateAnnotation}
               />

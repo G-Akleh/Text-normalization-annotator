@@ -1,4 +1,4 @@
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, ReactNode } from "react";
 import type { Annotation, Case, Judgment } from "./types";
 import { annotation, text } from "./data";
 import { judgmentLabels, judgments } from "./labels";
@@ -158,7 +158,11 @@ export function CaseList({
               <strong>{item.id}</strong>
               <small>
                 {text(item.severity) || "unlabeled"} ·{" "}
-                {judgment ? judgmentLabels[judgment] : "Unreviewed"}
+                {judgment
+                  ? judgmentLabels[judgment]
+                  : annotation(item).skipped_at
+                    ? "Skipped"
+                    : "Unreviewed"}
               </small>
             </div>
           </button>
@@ -172,14 +176,12 @@ export function ReviewCard({
   item,
   index,
   total,
-  availableTypes,
   onSelect,
   onUpdate,
 }: {
   item: Case;
   index: number;
   total: number;
-  availableTypes: string[];
   onSelect: (offset: number) => void;
   onUpdate: (update: Partial<Annotation>) => void;
 }) {
@@ -224,6 +226,9 @@ export function ReviewCard({
         <div className="section-heading">
           <div>
             <span className="eyebrow">ANNOTATOR DECISION</span>
+            <span className="shortcut-hint">
+              Hotkeys: A correct · S error · D alternative · F skip · ↑/↓ cases
+            </span>
           </div>
           {current.judgment && <span className="reviewed-mark">Reviewed</span>}
         </div>
@@ -236,37 +241,28 @@ export function ReviewCard({
                 onUpdate({
                   judgment:
                     current.judgment === judgment ? undefined : judgment,
+                  skipped_at: undefined,
                 })
               }
             >
               {judgmentLabels[judgment]}
             </button>
           ))}
+          <button
+            className={`judgment skip ${current.skipped_at ? "selected" : ""}`}
+            onClick={() =>
+              onUpdate({
+                judgment: undefined,
+                skipped_at: current.skipped_at
+                  ? undefined
+                  : new Date().toISOString(),
+              })
+            }
+          >
+            Skip
+          </button>
         </div>
         <div className="fields">
-          <label>
-            Confirmed error types
-            <select
-              multiple
-              value={current.error_types ?? []}
-              onChange={(event) =>
-                onUpdate({
-                  error_types: Array.from(
-                    event.target.selectedOptions,
-                    (option) => option.value,
-                  ),
-                })
-              }
-            >
-              {availableTypes.map((type) => (
-                <option key={type}>{type}</option>
-              ))}
-            </select>
-            <small>
-              Multiple selections allowed. Source values are retained
-              separately.
-            </small>
-          </label>
           <label>
             Annotation comment
             <textarea
@@ -290,8 +286,15 @@ export function ReviewCard({
           <DiagnosticLine
             label="Input spans"
             value={text(item.source_text_with_spans)}
+            render={(value) => <HighlightedInput value={value} />}
           />
-          <DiagnosticLine label="Model output" value={text(item.prediction)} />
+          <DiagnosticLine
+            label="Model output"
+            value={text(item.prediction)}
+            render={(value) => (
+              <HighlightedOutput value={value} spans={normalizedSpans(item)} />
+            )}
+          />
           <DiagnosticLine
             label="Normalized spans"
             value={
@@ -338,13 +341,80 @@ function Panel({
   );
 }
 
-function DiagnosticLine({ label, value }: { label: string; value: string }) {
+function DiagnosticLine({
+  label,
+  value,
+  render,
+}: {
+  label: string;
+  value: string;
+  render?: (value: string) => ReactNode;
+}) {
   return value ? (
     <div className="diagnostic-line">
       <b>{label}:</b>
-      <span>{value}</span>
+      <span>{render ? render(value) : value}</span>
     </div>
   ) : null;
+}
+
+const normalizedSpans = (item: Case) =>
+  Array.isArray(item.normalized_spans)
+    ? item.normalized_spans.filter(
+        (span): span is string => typeof span === "string",
+      )
+    : [];
+
+function HighlightedInput({ value }: { value: string }) {
+  const parts = value.split(/(<span>.*?<\/span>)/gis);
+  let color = 0;
+
+  return parts.map((part, index) => {
+    const match = /^<span>([\s\S]*?)<\/span>$/i.exec(part);
+
+    return match ? (
+      <span key={index}>
+        {"<span>"}
+        <mark className={`span-highlight span-${color++ % 6}`}>
+          {match[1]}
+        </mark>
+        {"</span>"}
+      </span>
+    ) : (
+      <span key={index}>{part}</span>
+    );
+  });
+}
+
+function HighlightedOutput({
+  value,
+  spans,
+}: {
+  value: string;
+  spans: string[];
+}) {
+  const pieces: ReactNode[] = [];
+  let cursor = 0;
+  spans.forEach((span, index) => {
+    const position = value.indexOf(span, cursor);
+    if (position < 0) return;
+    if (position > cursor)
+      pieces.push(
+        <span key={`text-${index}`}>{value.slice(cursor, position)}</span>,
+      );
+    pieces.push(
+      <mark
+        className={`span-highlight span-${index % 6}`}
+        key={`span-${index}`}
+      >
+        {span}
+      </mark>,
+    );
+    cursor = position + span.length;
+  });
+  if (cursor < value.length || pieces.length === 0)
+    pieces.push(<span key="tail">{value.slice(cursor)}</span>);
+  return pieces;
 }
 
 function Filter({
