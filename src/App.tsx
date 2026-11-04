@@ -11,6 +11,7 @@ const maxSessionBytes = 5 * 1024 * 1024;
 const maxSessionLabel = "5 MB";
 
 type SavedSession = { dataset: Dataset; selectedId: string };
+type Message = { text: string; kind: "info" | "error" };
 
 function restoreSession(): SavedSession | null {
   try {
@@ -41,7 +42,7 @@ export default function App() {
   const [severity, setSeverity] = useState("all");
   const [stage, setStage] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<Message | null>(null);
   const cases = dataset?.cases ?? emptyCases;
 
   useEffect(() => {
@@ -92,38 +93,45 @@ export default function App() {
   const currentIndex = filtered.findIndex((item) => item.id === current?.id);
   const sourceTypes = fieldValues(cases, "error_types");
 
-  const updateAnnotation = useCallback((update: Partial<Annotation>) => {
-    if (!current) return;
-    setDataset((old) =>
-      old
-        ? {
-            ...old,
-            cases: old.cases.map((item) =>
-              item.id === current.id
-                ? {
-                    ...item,
-                    human_annotation: {
-                      ...annotation(item),
-                      ...update,
-                      reviewed_at: update.judgment
-                        ? new Date().toISOString()
-                        : update.judgment === undefined && "skipped_at" in update
-                          ? undefined
-                          : annotation(item).reviewed_at,
-                    },
-                  }
-                : item,
-            ),
-          }
-        : old,
-    );
-  }, [current]);
+  const updateAnnotation = useCallback(
+    (update: Partial<Annotation>) => {
+      if (!current) return;
+      setDataset((old) =>
+        old
+          ? {
+              ...old,
+              cases: old.cases.map((item) =>
+                item.id === current.id
+                  ? {
+                      ...item,
+                      human_annotation: {
+                        ...annotation(item),
+                        ...update,
+                        reviewed_at: update.judgment
+                          ? new Date().toISOString()
+                          : update.judgment === undefined &&
+                              "skipped_at" in update
+                            ? undefined
+                            : annotation(item).reviewed_at,
+                      },
+                    }
+                  : item,
+              ),
+            }
+          : old,
+      );
+    },
+    [current],
+  );
 
   function importFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
     if (file.size > maxSessionBytes) {
-      setMessage(`Import a JSON file no larger than ${maxSessionLabel}.`);
+      setMessage({
+        text: `Import a JSON file no larger than ${maxSessionLabel}.`,
+        kind: "error",
+      });
       event.target.value = "";
       return;
     }
@@ -132,8 +140,13 @@ export default function App() {
       try {
         const parsed = validateDataset(JSON.parse(String(reader.result)));
         // sessionStorage stores DOMStrings (UTF-16), not the file's byte stream.
-        if (JSON.stringify({ dataset: parsed, selectedId: "" }).length * 2 > maxSessionBytes)
-          throw new Error(`This dataset is too large for the ${maxSessionLabel} browser session limit.`);
+        if (
+          JSON.stringify({ dataset: parsed, selectedId: "" }).length * 2 >
+          maxSessionBytes
+        )
+          throw new Error(
+            `This dataset is too large for the ${maxSessionLabel} browser session limit.`,
+          );
         if (
           cases.some((item) => annotation(item).judgment) &&
           !window.confirm("Replace the current dataset and annotations?")
@@ -141,13 +154,18 @@ export default function App() {
           return;
         setDataset(parsed);
         setSelectedId(parsed.cases[0]?.id ?? "");
-        setMessage(`Imported ${parsed.cases.length} cases from ${file.name}.`);
+        setMessage({
+          text: `Imported ${parsed.cases.length} cases from ${file.name}.`,
+          kind: "info",
+        });
       } catch (error) {
-        setMessage(
-          error instanceof Error
-            ? error.message
-            : "Could not read this JSON file.",
-        );
+        setMessage({
+          text:
+            error instanceof Error
+              ? error.message
+              : "Could not read this JSON file.",
+          kind: "error",
+        });
       }
     };
     reader.readAsText(file);
@@ -155,7 +173,13 @@ export default function App() {
   }
 
   function exportData() {
-    if (!dataset) return;
+    if (!dataset) {
+      setMessage({
+        text: "Import a JSON file before exporting annotations.",
+        kind: "error",
+      });
+      return;
+    }
     const blob = new Blob([JSON.stringify(dataset, null, 2)], {
       type: "application/json",
     });
@@ -168,15 +192,19 @@ export default function App() {
     sessionStorage.removeItem(sessionKey);
     setDataset(null);
     setSelectedId("");
-    setMessage(
-      "Annotations exported. The temporary review session was cleared.",
-    );
+    setMessage({
+      text: "Annotations exported. The temporary review session was cleared.",
+      kind: "info",
+    });
   }
 
-  const navigate = useCallback((offset: number) => {
-    const next = filtered[currentIndex + offset];
-    if (next) setSelectedId(next.id);
-  }, [currentIndex, filtered]);
+  const navigate = useCallback(
+    (offset: number) => {
+      const next = filtered[currentIndex + offset];
+      if (next) setSelectedId(next.id);
+    },
+    [currentIndex, filtered],
+  );
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -203,7 +231,10 @@ export default function App() {
         updateAnnotation({ judgment, skipped_at: undefined });
       } else if (event.key.toLowerCase() === "f") {
         event.preventDefault();
-        updateAnnotation({ judgment: undefined, skipped_at: new Date().toISOString() });
+        updateAnnotation({
+          judgment: undefined,
+          skipped_at: new Date().toISOString(),
+        });
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -218,8 +249,11 @@ export default function App() {
         onExport={exportData}
       />
       {message && (
-        <div className="message" role="status">
-          {message}
+        <div
+          className={`message ${message.kind}`}
+          role={message.kind === "error" ? "alert" : "status"}
+        >
+          {message.text}
         </div>
       )}
       {dataset ? (
@@ -275,9 +309,7 @@ export default function App() {
               hidden
             />
           </label>
-          <p className="upload-limit">
-            Maximum file size: {maxSessionLabel}.
-          </p>
+          <p className="upload-limit">Maximum file size: {maxSessionLabel}.</p>
         </section>
       )}
     </main>

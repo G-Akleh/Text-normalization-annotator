@@ -22,7 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# Context Files
-# critical-cases-expanded.json
-# PROJECT_BRIEF.md
