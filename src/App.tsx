@@ -7,6 +7,8 @@ import "./App.css";
 
 const emptyCases: Dataset["cases"] = [];
 const sessionKey = "normalization-annotator-session";
+const maxSessionBytes = 5 * 1024 * 1024;
+const maxSessionLabel = "5 MB";
 
 type SavedSession = { dataset: Dataset; selectedId: string };
 
@@ -120,10 +122,18 @@ export default function App() {
   function importFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+    if (file.size > maxSessionBytes) {
+      setMessage(`Import a JSON file no larger than ${maxSessionLabel}.`);
+      event.target.value = "";
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       try {
         const parsed = validateDataset(JSON.parse(String(reader.result)));
+        // sessionStorage stores DOMStrings (UTF-16), not the file's byte stream.
+        if (JSON.stringify({ dataset: parsed, selectedId: "" }).length * 2 > maxSessionBytes)
+          throw new Error(`This dataset is too large for the ${maxSessionLabel} browser session limit.`);
         if (
           cases.some((item) => annotation(item).judgment) &&
           !window.confirm("Replace the current dataset and annotations?")
@@ -255,6 +265,18 @@ export default function App() {
           <p>
             Import a JSON file with a top-level <code>cases</code> array to
             begin annotating.
+          </p>
+          <label className="button welcome-import">
+            Import JSON
+            <input
+              type="file"
+              accept="application/json,.json"
+              onChange={importFile}
+              hidden
+            />
+          </label>
+          <p className="upload-limit">
+            Maximum file size: {maxSessionLabel}.
           </p>
         </section>
       )}

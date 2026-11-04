@@ -435,6 +435,15 @@
 .welcome h2 {
   color: #263a55;
 }
+.welcome-import {
+  display: inline-block;
+  margin-top: 6px;
+}
+.upload-limit {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: #788696;
+}
 .welcome code {
   background: #edf2f6;
   padding: 2px 5px;
