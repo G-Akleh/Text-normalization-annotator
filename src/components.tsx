@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { ChangeEvent, ReactNode } from "react";
 import type { Annotation, Case, Judgment } from "./types";
 import { annotation, text } from "./data";
@@ -139,8 +140,16 @@ export function CaseList({
   selectedId: string;
   onSelect: (id: string) => void;
 }) {
+  const listRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const selected = listRef.current?.querySelector<HTMLButtonElement>(
+      `[data-case-id="${CSS.escape(selectedId)}"]`,
+    );
+    selected?.scrollIntoView({ block: "nearest" });
+  }, [selectedId]);
+
   return (
-    <aside className="case-list">
+    <aside className="case-list" ref={listRef}>
       <div className="list-title">
         <b>Cases</b>
         <span>{items.length} shown</span>
@@ -150,6 +159,7 @@ export function CaseList({
         return (
           <button
             key={item.id}
+            data-case-id={item.id}
             className={`case-row ${judgment ?? "unreviewed"} ${item.id === selectedId ? "active" : ""}`}
             onClick={() => onSelect(item.id)}
           >
