@@ -208,13 +208,19 @@ export default function App() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      if (target?.matches("input, textarea, select, button")) return;
-      if (event.key === "ArrowUp") {
+      // Keep typing/selecting safe, but do not ignore shortcuts merely because
+      // a case/navigation button currently has focus (Safari keeps button focus).
+      if (
+        target?.matches("input, textarea, select, [contenteditable='true']")
+      )
+        return;
+      const key = event.key || event.code;
+      if (key === "ArrowUp" || key === "Up") {
         event.preventDefault();
         navigate(-1);
         return;
       }
-      if (event.key === "ArrowDown") {
+      if (key === "ArrowDown" || key === "Down") {
         event.preventDefault();
         navigate(1);
         return;
@@ -225,11 +231,19 @@ export default function App() {
         s: "error",
         d: "acceptable_alternative",
       };
-      const judgment = shortcuts[event.key.toLowerCase()];
+      const normalizedKey = key.toLowerCase();
+      const judgment = shortcuts[normalizedKey] ??
+        (normalizedKey === "keya"
+          ? "correct"
+          : normalizedKey === "keys"
+            ? "error"
+            : normalizedKey === "keyd"
+              ? "acceptable_alternative"
+              : undefined);
       if (judgment) {
         event.preventDefault();
         updateAnnotation({ judgment, skipped_at: undefined });
-      } else if (event.key.toLowerCase() === "f") {
+      } else if (normalizedKey === "f" || normalizedKey === "keyf") {
         event.preventDefault();
         updateAnnotation({
           judgment: undefined,
@@ -237,8 +251,8 @@ export default function App() {
         });
       }
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
   }, [current, currentIndex, filtered, navigate, updateAnnotation]);
   return (
     <main className="app-shell">
