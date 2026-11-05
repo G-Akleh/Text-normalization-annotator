@@ -155,7 +155,15 @@ export function CaseList({
         <span>{items.length} shown</span>
       </div>
       {items.map((item, index) => {
-        const judgment = annotation(item).judgment;
+        const itemAnnotation = annotation(item);
+        const judgment = itemAnnotation.judgment;
+        const status = judgment
+          ? judgmentLabels[judgment]
+          : itemAnnotation.skipped_at
+            ? "Skipped"
+            : itemAnnotation.comment?.trim()
+              ? "Decision missing"
+              : "Unreviewed";
         return (
           <button
             key={item.id}
@@ -167,12 +175,7 @@ export function CaseList({
             <div>
               <strong>{item.id}</strong>
               <small>
-                {text(item.severity) || "unlabeled"} ·{" "}
-                {judgment
-                  ? judgmentLabels[judgment]
-                  : annotation(item).skipped_at
-                    ? "Skipped"
-                    : "Unreviewed"}
+                {text(item.severity) || "unlabeled"} · {status}
               </small>
             </div>
           </button>
@@ -211,7 +214,11 @@ export function ReviewCard({
                 </span>
               ))}
             {!current.judgment && (
-              <span className="chip pending">Unreviewed</span>
+              <span
+                className={`chip ${current.comment?.trim() ? "missing-decision" : "pending"}`}
+              >
+                {current.comment?.trim() ? "Decision missing" : "Unreviewed"}
+              </span>
             )}
           </div>
         </div>
@@ -385,9 +392,7 @@ function HighlightedInput({ value }: { value: string }) {
     return match ? (
       <span key={index}>
         {"<span>"}
-        <mark className={`span-highlight span-${color++ % 6}`}>
-          {match[1]}
-        </mark>
+        <mark className={`span-highlight span-${color++ % 6}`}>{match[1]}</mark>
         {"</span>"}
       </span>
     ) : (

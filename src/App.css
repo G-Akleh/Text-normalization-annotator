@@ -230,6 +230,10 @@
   background: #fff2cf;
   color: #856318;
 }
+.chip.missing-decision {
+  background: #ffe4c7;
+  color: #92551d;
+}
 .navigation {
   font-size: 12px;
   color: #697687;
